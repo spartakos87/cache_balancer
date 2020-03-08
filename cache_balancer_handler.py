@@ -62,7 +62,6 @@ class MemoryEntry (object):
     self.first_packet = first_packet
     self.client_port = client_port
     self.refresh()
-              # Ah, nothing new here.
 
   def refresh (self):
     self.timeout = time.time() + FLOW_MEMORY_TIMEOUT
@@ -233,10 +232,8 @@ class iplb (object):
     # It's TCP.
 
     ipp = packet.find('ipv4')
-    print("SRC: %s --> DST: %s" %(ipp.srcip, ipp.dstip))
-    print("SERVERS: %s"  %self.servers)
+
     if ipp.srcip in self.servers:
-      print("IS IN SERVERS LIST") 
       # It's FROM one of our balanced servers.
       # Rewrite it BACK to the client
 
@@ -271,15 +268,12 @@ class iplb (object):
       self.con.send(msg)
 
     elif ipp.dstip == self.service_ip:
-      print("OOO")
       # Ah, it's for our service IP and needs to be load balanced
 
       # Do we already know this flow?
       key = ipp.srcip,ipp.dstip,tcpp.srcport,tcpp.dstport
-      print("MEMORY:%s" %self.memory)
       entry = self.memory.get(key)
       if entry is None or entry.server not in self.live_servers:
-        print("NOPEEE")
         # Don't know it (hopefully it's new!)
         if len(self.live_servers) == 0:
           self.log.warn("No servers!")
