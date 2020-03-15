@@ -57,6 +57,7 @@ class MemoryEntry (object):
   the Nicira extension which can match packets with FIN set to remove them
   when the connection closes.
   """
+  # TODO do we need this class??? Because we need to have our tactic for remember the flows base on our proxy rules
   def __init__ (self, server, first_packet, client_port):
     self.server = server
     self.first_packet = first_packet
@@ -97,6 +98,22 @@ class iplb (object):
   We probe the servers to see if they're alive by sending them ARPs.
   """
   def __init__ (self, connection, service_ip, servers = []):
+    """
+    Initialize the parameters of connection
+
+    :param connection: ????
+    :param service_ip: the IP of our service/ dont need it in my case - all the hosts are "service ip"
+    :param servers:  list of servers/ in my case list of proxy servers.
+    """
+    # TODO initialize the stucture `dict_proxy_host`
+    # TODO extrat this info from manifest.xml
+    """
+    How will be this structure
+    Two cases
+    1st each host is key with value the proxy which is nearest to it
+    2nd each porxy is key with a value a list with the nearest hosts
+    To create this must extract the info from manifest.xml 
+    """
     self.service_ip = IPAddr(service_ip)
     self.servers = [IPAddr(a) for a in servers]
     self.con = connection
@@ -128,6 +145,7 @@ class iplb (object):
     #self.con.addListeners(self)
 
   def _do_expire (self):
+    # TODO explore what need to be done here
     """
     Expire probes and "memorized" flows
 
@@ -192,8 +210,25 @@ class iplb (object):
 
   def _pick_server (self, key, inport):
     """
-    Pick a server for a (hopefully) new connection
+
+    :param key:
+    :param inport:
+    :return:
     """
+    """
+    Pick a server for a (hopefully) new connection/
+    Implement all the logic here
+    """
+    # TODO all the logic is placed here
+    """
+    STEPS TO SELECT MORE SUITABLE PROXY
+    - STEP 1: EXTRACT dstip from argument key
+    - STEP 2: CHECK THE STRUCTURE `dict_cache`. If there is there check the timestamp if not expires then return proxy
+    - STEP 3: IF THE `dict_cache` IS NOT INCLUDE GIVEN IP OR THE TIMESTAMP IS EXPIRES THEN LOOK AT 
+              `dict_proxy_hosts` AND RETURN THE PROXY
+    
+    """
+    # TODO return ip and port of chosen proxy (dstip & dstport)
     return random.choice(self.live_servers.keys())
 
   def _handle_PacketIn (self, event):
@@ -239,8 +274,10 @@ class iplb (object):
 
       key = ipp.srcip,ipp.dstip,tcpp.srcport,tcpp.dstport
       entry = self.memory.get(key)
+      # TODO check the memory structure
 
       if entry is None:
+        # TODO check what happend here
         # We either didn't install it, or we forgot about it.
         self.log.debug("No client for %s", key)
         return drop()
@@ -268,13 +305,18 @@ class iplb (object):
       self.con.send(msg)
 
     elif ipp.dstip == self.service_ip:
+      # TODO  all servers are our service ip
       # Ah, it's for our service IP and needs to be load balanced
 
       # Do we already know this flow?
+      # TODO this is the structure of key
+      # self.memory return class object MemoryEntry
       key = ipp.srcip,ipp.dstip,tcpp.srcport,tcpp.dstport
       entry = self.memory.get(key)
+      # Case whwere there is any entry or in the begin
       if entry is None or entry.server not in self.live_servers:
         # Don't know it (hopefully it's new!)
+        # Case when there is any live server
         if len(self.live_servers) == 0:
           self.log.warn("No servers!")
           return drop()
@@ -291,11 +333,12 @@ class iplb (object):
 
       # Set up table entry towards selected server
       mac,port = self.live_servers[entry.server]
-
+      # TODO add one more action. Define new destination port (dstport)
       actions = []
-      actions.append(of.ofp_action_dl_addr.set_dst(mac))
-      actions.append(of.ofp_action_nw_addr.set_dst(entry.server))
-      actions.append(of.ofp_action_output(port = port))
+      actions.append(of.ofp_action_dl_addr.set_dst(mac))  # Add mac of proxy server which we are use
+      actions.append(of.ofp_action_nw_addr.set_dst(entry.server))  # Add ip of proxy server which we are use
+      # TODO  Add tcp port of proxy server which we are use: of.ofp_action_tp_port.set_dst(<int port>)
+      actions.append(of.ofp_action_output(port=port))  # Export port of switch
       match = of.ofp_match.from_packet(packet, inport)
 
       msg = of.ofp_flow_mod(command=of.OFPFC_ADD,
@@ -312,6 +355,14 @@ _dpid = None
 
 
 def launch (ip, servers, dpid = None):
+  """
+  Read/load the input od user
+
+  :param ip:  The ip of service
+  :param servers: The servers where we direct the packets
+  :param dpid:
+  :return:
+  """
   global _dpid
   if dpid is not None:
     _dpid = str_to_dpid(dpid)
