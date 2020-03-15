@@ -106,7 +106,8 @@ class iplb (object):
     :param servers:  list of servers/ in my case list of proxy servers.
     """
     # TODO initialize the stucture `dict_proxy_host`
-    # TODO extrat this info from manifest.xml
+    # TODO initialize the stucture `dict_cache`
+    # TODO extract this info from manifest.xml
     """
     How will be this structure
     Two cases
@@ -269,6 +270,7 @@ class iplb (object):
     ipp = packet.find('ipv4')
 
     if ipp.srcip in self.servers:
+      # TODO will not have this case
       # It's FROM one of our balanced servers.
       # Rewrite it BACK to the client
 
@@ -363,7 +365,7 @@ def launch (ip, servers, dpid = None):
   :param dpid:
   :return:
   """
-  global _dpid
+  global _dpid  # What is that?
   if dpid is not None:
     _dpid = str_to_dpid(dpid)
 
