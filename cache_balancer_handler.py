@@ -357,6 +357,9 @@ _dpid = None
 
 
 def launch (ip, servers, dpid = None):
+  # TODO remove argument ip and dpid
+  # TODO rename servers to proxy servers
+  # TODO `read` dict of `proxy servers`
   """
   Read/load the input od user
 
@@ -379,7 +382,7 @@ def launch (ip, servers, dpid = None):
   from proto.arp_responder import ARPResponder
   old_pi = ARPResponder._handle_PacketIn
   def new_pi (self, event):
-    if event.dpid == _dpid:
+    if event.dpid == _dpid:  # TODO simple solution to use all switch replace this with if True:
       # Yes, the packet-in is on the right switch
       return old_pi(self, event)
   ARPResponder._handle_PacketIn = new_pi
@@ -392,15 +395,22 @@ def launch (ip, servers, dpid = None):
 
 
   def _handle_ConnectionUp (event):
+    # TODO remove dpid reference
+    """
+    With this piece of code with get the  datapath id of switch. We will have more than one switches
+    """
     global _dpid
     if _dpid is None:
-      _dpid = event.dpid
+      _dpid = event.dpid  # Get and define the first switch available
 
     if _dpid != event.dpid:
       log.warn("Ignoring switch %s", event.connection)
+      # Ignore others switches
     else:
       if not core.hasComponent('iplb'):
         # Need to initialize first...
+        # TODO remove IPAddr(ip)
+        # IPAdd(ip): Ip of service, servers: list of servers
         core.registerNew(iplb, event.connection, IPAddr(ip), servers)
         log.info("IP Load Balancer Ready.")
       log.info("Load Balancing on %s", event.connection)
