@@ -26,6 +26,8 @@ from ryu.lib.packet.ether_types import ETH_TYPE_IP
 from ryu.lib.packet import arp
 from ryu.lib.packet import ethernet
 
+from time import time as timestamp
+
 
 class SimpleSwitch13(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -236,10 +238,28 @@ class SimpleSwitch13(app_manager.RyuApp):
     def pick_proxy_server(self, ip_dst):
         """
 
-        :return: tuple of mac ip and port
+        :return: tuple of mac ip of proxy and port
         """
         self.proxy_ip_mac = {}  # This dict include all proxies ip with their mac addresses
         self.dict_proxy_hosts = {}  # This dict has as key the ip of proxy and list with hosts which are nearest to it
-        # This dict has the structure proxy_ip as key and list with dicts which have the structure with key ip server
-        # and value timestamp
+        # This dict has the structure ip_dst as key and list with dicts which have the structure with key ip of proxy
+        # server and value timestamp
         self.dict_cache = {}
+        # In case there isn't in dict_cache check in which proxy belong the given ip_dst
+        if self.dict_cache.get(ip_dst, None):
+            # There is in dict do something
+            pass
+        else:
+            temp_proxy_server = None
+            for k,v in self.dict_proxy_hosts.items():
+                if ip_dst in v:
+                    temp_proxy_server = k
+                    break
+            if temp_proxy_server:
+                proxy_mac = self.proxy_ip_mac[temp_proxy_server]
+                # TODO load in dict_cache
+                self.dict_cache[ip_dst] = {temp_proxy_server: timestamp()}
+                return proxy_mac, temp_proxy_server, self.mac_to_port[self.dpid][proxy_mac]
+            else:
+                # In this case temp_proxy_server is none raise exception
+                print("None proxy server found")
