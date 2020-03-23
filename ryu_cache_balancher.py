@@ -127,7 +127,7 @@ class SimpleSwitch13(app_manager.RyuApp):
         # Handle ARP Packet
         if eth.ethertype == ether_types.ETH_TYPE_ARP:
             arp_header = pkt.get_protocol(arp.arp)
-
+            # TODO remove this arp_header.dst_ip == self.VIRTUAL_IP all servers are virtual ip for as
             if arp_header.dst_ip == self.VIRTUAL_IP and arp_header.opcode == arp.ARP_REQUEST:
                 self.logger.info("***************************")
                 self.logger.info("---Handle ARP Packet---")
@@ -168,8 +168,8 @@ class SimpleSwitch13(app_manager.RyuApp):
         arp_target_ip = dst_ip  # the sender ip
         arp_target_mac = dst_mac  # the sender mac
         # Making the load balancer IP as source IP
+        # TODO remove this piece of code we make a function pick_proxy_server which return (ip,mac)
         src_ip = self.VIRTUAL_IP
-
         if haddr_to_int(arp_target_mac) % 2 == 1:
             src_mac = self.SERVER1_MAC
         else:
@@ -193,7 +193,8 @@ class SimpleSwitch13(app_manager.RyuApp):
     def handle_tcp_packet(self, datapath, in_port, ip_header, parser, dst_mac, src_mac):
         print(self.mac_to_port[self.dpid])
         packet_handled = False
-        print("IP header--->%s",ip_header)
+        # TODO remove this piece of code we make a function pick_proxy_server which return (ip,mac)
+        # TODO remove self.VIRTUAL_IP all servers are virtual ip for us
         if ip_header.dst == self.VIRTUAL_IP:
             if dst_mac == self.SERVER1_MAC:
                 server_dst_ip = self.SERVER1_IP
