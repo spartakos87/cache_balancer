@@ -232,3 +232,14 @@ class SimpleSwitch13(app_manager.RyuApp):
                              str(in_port) + "====>")
             packet_handled = True
         return packet_handled
+
+    def pick_proxy_server(self, ip_dst):
+        """
+
+        :return: tuple of mac ip and port
+        """
+        self.proxy_ip_mac = {}  # This dict include all proxies ip with their mac addresses
+        self.dict_proxy_hosts = {}  # This dict has as key the ip of proxy and list with hosts which are nearest to it
+        # This dict has the structure proxy_ip as key and list with dicts which have the structure with key ip server
+        # and value timestamp
+        self.dict_cache = {}
