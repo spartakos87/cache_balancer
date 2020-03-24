@@ -44,6 +44,15 @@ class SimpleSwitch13(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(SimpleSwitch13, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
+        ################################################################################################################
+        # TODO remove all these to init
+        self.proxy_time_cache = 1000  # Is the time proxy store web objects
+        self.proxy_ip_mac = {}  # This dict include all proxies ip with their mac addresses
+        self.dict_proxy_hosts = {}  # This dict has as key the ip of proxy and list with hosts which are nearest to it
+        # This dict has the structure ip_dst as key and list with dicts which have the structure with key ip of proxy
+        # server and value timestamp
+        self.dict_cache = {}
+        ###############################################################################################################
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -240,26 +249,37 @@ class SimpleSwitch13(app_manager.RyuApp):
 
         :return: tuple of mac ip of proxy and port
         """
-        self.proxy_ip_mac = {}  # This dict include all proxies ip with their mac addresses
-        self.dict_proxy_hosts = {}  # This dict has as key the ip of proxy and list with hosts which are nearest to it
-        # This dict has the structure ip_dst as key and list with dicts which have the structure with key ip of proxy
-        # server and value timestamp
-        self.dict_cache = {}
+
         # In case there isn't in dict_cache check in which proxy belong the given ip_dst
         if self.dict_cache.get(ip_dst, None):
-            # There is in dict do something
-            pass
+            # There is in cache of some proxy
+            proxy_ip, time = self.dict_cache[ip_dst]
+            if time-timestamp() < self.proxy_time_cache:
+                # TODO need to force proxy to refresh the object in its cache
+                # The object is still in proxy cache
+                proxy_mac = self.proxy_ip_mac[proxy_ip]
+                proxy_port = self.mac_to_port[self.dpid][proxy_mac]
+                return proxy_mac, proxy_ip, proxy_port
         else:
-            temp_proxy_server = None
-            for k,v in self.dict_proxy_hosts.items():
-                if ip_dst in v:
-                    temp_proxy_server = k
-                    break
-            if temp_proxy_server:
-                proxy_mac = self.proxy_ip_mac[temp_proxy_server]
-                # TODO load in dict_cache
-                self.dict_cache[ip_dst] = {temp_proxy_server: timestamp()}
-                return proxy_mac, temp_proxy_server, self.mac_to_port[self.dpid][proxy_mac]
-            else:
-                # In this case temp_proxy_server is none raise exception
-                print("None proxy server found")
+            self.init_proxy_cache(ip_dst)
+
+    def init_proxy_cache(self, ip_dst):
+        """
+
+        :param ip_dst:
+        :return:
+        """
+        temp_proxy_server = None
+        for k, v in self.dict_proxy_hosts.items():
+            if ip_dst in v:
+                temp_proxy_server = k
+                break
+        if temp_proxy_server:
+            proxy_mac = self.proxy_ip_mac[temp_proxy_server]
+            # TODO load in dict_cache
+            self.dict_cache[ip_dst] = {temp_proxy_server: timestamp()}
+            return proxy_mac, temp_proxy_server, self.mac_to_port[self.dpid][proxy_mac]
+        else:
+            # In this case temp_proxy_server is none raise exception
+            raise Exception("None proxy server found")
+
