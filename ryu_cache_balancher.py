@@ -156,9 +156,7 @@ class SimpleSwitch13(app_manager.RyuApp):
             self.logger.info("***************************")
             self.logger.info("---Handle TCP Packet---")
             ip_header = pkt.get_protocol(ipv4.ipv4)
-
             packet_handled = self.handle_tcp_packet(datapath, in_port, ip_header, parser, dst_mac, src_mac)
-            # packet_handled = self.handle_tcp_packet_2(datapath, ip_header, parser, in_port)
             self.logger.info("TCP packet handled: " + str(packet_handled))
             if packet_handled:
                 return
