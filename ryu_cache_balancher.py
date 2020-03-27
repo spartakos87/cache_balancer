@@ -236,34 +236,34 @@ class SimpleSwitch13(app_manager.RyuApp):
             server_dst_ip = self.SERVER1_IP
             server_out_port = self.SERVER1_PORT
             # Route to server
-            match = parser.OFPMatch(in_port=in_port, eth_type=ETH_TYPE_IP, ip_proto=ip_header.proto,
+        match = parser.OFPMatch(in_port=in_port, eth_type=ETH_TYPE_IP, ip_proto=ip_header.proto,
                                     ipv4_dst=self.VIRTUAL_IP)
 
-            actions = [
+        actions = [
                         parser.OFPActionSetField(ipv4_dst=server_dst_ip),
                         parser.OFPActionOutput(server_out_port)]
 
-            self.add_flow(datapath, 20, match, actions)
-            self.logger.info("<==== Added TCP Flow- Route to Server: " + str(server_dst_ip) +
+        self.add_flow(datapath, 20, match, actions)
+        self.logger.info("<==== Added TCP Flow- Route to Server: " + str(server_dst_ip) +
                              " from Client :" + str(ip_header.src) + " on Switch Port:" +
                              str(server_out_port) + "====>")
 
-            # Reverse route from server
-            match = parser.OFPMatch(in_port=server_out_port, eth_type=ETH_TYPE_IP,
+        # Reverse route from server
+        match = parser.OFPMatch(in_port=server_out_port, eth_type=ETH_TYPE_IP,
                                     ip_proto=ip_header.proto,
                                     ipv4_src=server_dst_ip,
                                     eth_dst=src_mac
                                     )
-            actions = [
+        actions = [
                        # parser.OFPActionSetField(ipv4_src=self.VIRTUAL_IP),
                        parser.OFPActionSetField(ipv4_src=source),
                        parser.OFPActionOutput(in_port)]
 
-            self.add_flow(datapath, 20, match, actions)
-            self.logger.info("<==== Added TCP Flow- Reverse route from Server: " + str(server_dst_ip) +
+        self.add_flow(datapath, 20, match, actions)
+        self.logger.info("<==== Added TCP Flow- Reverse route from Server: " + str(server_dst_ip) +
                              " to Client: " + str(src_mac) + " on Switch Port:" +
                              str(in_port) + "====>")
-            packet_handled = True
+        packet_handled = True
         return packet_handled
 
     def pick_proxy_server(self, ip_dst):
