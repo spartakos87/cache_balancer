@@ -5,3 +5,20 @@ socat TCP-LISTEN:80,fork TCP:127.0.0.1:5000
 MININET only work out this--->
 iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 8080
 (https://serverfault.com/questions/520764/how-to-redirect-traffic-from-port-80-to-port-8080)
+
+
+
+
+###########################################
+Proxy servers
+https://github.com/abhinavsingh/proxy.py
+https://www.sipios.com/blog-tech/a-simple-reverse-proxy-in-python
+https://mitmproxy.org/
+https://github.com/spartakos87/Proxy-Server (for now I use this one)
+
+
+How to use proxy with curl
+curl -x <proxy ip> <destination ip>
+or 
+echo http_proxy
+curl <destination ip>

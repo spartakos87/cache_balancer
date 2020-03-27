@@ -32,14 +32,14 @@ from time import time as timestamp
 class SimpleSwitch13(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
-    VIRTUAL_IP = '10.0.0.100'  # The virtual server IP
+    VIRTUAL_IP = '10.0.0.2'  # The virtual server IP
 
     SERVER1_IP = '10.0.0.1'
     SERVER1_MAC = '00:00:00:00:00:01'
     SERVER1_PORT = 1
-    SERVER2_IP = '10.0.0.2'
-    SERVER2_MAC = '00:00:00:00:00:02'
-    SERVER2_PORT = 2
+    SERVER2_IP = SERVER1_IP
+    SERVER2_MAC = SERVER1_MAC
+    SERVER2_PORT = SERVER1_PORT
 
     def __init__(self, *args, **kwargs):
         super(SimpleSwitch13, self).__init__(*args, **kwargs)
@@ -141,9 +141,10 @@ class SimpleSwitch13(app_manager.RyuApp):
             # TODO remove this arp_header.dst_ip == self.VIRTUAL_IP all servers are virtual ip for as
             if arp_header.dst_ip == self.VIRTUAL_IP and arp_header.opcode == arp.ARP_REQUEST:
                 self.logger.info("***************************")
+                print("SOURCE IP", arp_header.src_ip)
                 self.logger.info("---Handle ARP Packet---")
                 # Build an ARP reply packet using source IP and source MAC
-                reply_packet = self.generate_arp_reply(arp_header.src_ip, arp_header.src_mac)
+                reply_packet = self.generate_arp_reply(arp_header.src_ip, arp_header.src_mac,  arp_header.dst_ip)
                 actions = [parser.OFPActionOutput(in_port)]
                 packet_out = parser.OFPPacketOut(datapath=datapath, in_port=ofproto.OFPP_ANY,
                                                  data=reply_packet.data, actions=actions, buffer_id=0xffffffff)
@@ -156,6 +157,7 @@ class SimpleSwitch13(app_manager.RyuApp):
             self.logger.info("***************************")
             self.logger.info("---Handle TCP Packet---")
             ip_header = pkt.get_protocol(ipv4.ipv4)
+            print("TCP SOURCE--->",ip_header.src)
             packet_handled = self.handle_tcp_packet(datapath, in_port, ip_header, parser, dst_mac, src_mac)
             self.logger.info("TCP packet handled: " + str(packet_handled))
             if packet_handled:
@@ -171,19 +173,29 @@ class SimpleSwitch13(app_manager.RyuApp):
         datapath.send_msg(out)
 
     # Source IP and MAC passed here now become the destination for the reply packet
-    def generate_arp_reply(self, dst_ip, dst_mac):
+    def generate_arp_reply(self, dst_ip, dst_mac, server_ip):
         self.logger.info("Generating ARP Reply Packet")
         self.logger.info("ARP request client ip: " + dst_ip + ", client mac: " + dst_mac)
-        arp_target_ip = dst_ip  # the sender ip
-        arp_target_mac = dst_mac  # the sender mac
+        # arp_target_ip = dst_ip  # the sender ip
+        # arp_target_mac = dst_mac  # the sender mac
         # Making the load balancer IP as source IP
         # TODO remove this piece of code we make a function pick_proxy_server which return (ip,mac)
-        src_ip = self.VIRTUAL_IP
-        if haddr_to_int(arp_target_mac) % 2 == 1:
-            src_mac = self.SERVER1_MAC
+        # src_ip = self.VIRTUAL_IP
+        # if haddr_to_int(arp_target_mac) % 2 == 1:
+        #     src_mac = self.SERVER1_MAC
+        # else:
+        #     src_mac = self.SERVER2_MAC
+        # self.logger.info("Selected server MAC: " + src_mac)
+        if server_ip == '10.0.0.1':
+            src_ip = self.SERVER1_IP
+            arp_target_ip = self.SERVER1_IP  # the sender ip
+            arp_target_mac = self.SERVER1_MAC  # the sender mac
+            src_mac = '00:00:00:00:00:01'
         else:
-            src_mac = self.SERVER2_MAC
-        self.logger.info("Selected server MAC: " + src_mac)
+            src_ip = server_ip
+            arp_target_ip = dst_ip  # the sender ip
+            arp_target_mac = dst_mac  # the sender mac
+            src_mac = self.SERVER1_MAC
 
         pkt = packet.Packet()
         pkt.add_protocol(
@@ -204,14 +216,25 @@ class SimpleSwitch13(app_manager.RyuApp):
         packet_handled = False
         # TODO remove this piece of code we make a function pick_proxy_server which return (ip,mac)
         # TODO remove self.VIRTUAL_IP all servers are virtual ip for us
-        if ip_header.dst == self.VIRTUAL_IP:
-            if dst_mac == self.SERVER1_MAC:
-                server_dst_ip = self.SERVER1_IP
-                server_out_port = self.SERVER1_PORT
-            else:
-                server_dst_ip = self.SERVER2_IP
-                server_out_port = self.SERVER2_PORT
+        # TODO if ip_header.src is belong to a proxy server then we dont do anything
+        print("AA",ip_header.src)
+        print("BB",ip_header.dst)
+        # if ip_header.dst == self.VIRTUAL_IP:
+        #     if dst_mac == self.SERVER1_MAC:
+        #         server_dst_ip = self.SERVER1_IP
+        #         server_out_port = self.SERVER1_PORT
+        #     else:
+        #         server_dst_ip = self.SERVER2_IP
+        #         server_out_port = self.SERVER2_PORT
 
+        if ip_header.src == '10.0.0.1':
+            source = self.SERVER1_IP
+            server_dst_ip = ip_header.dst
+            server_out_port = 2
+        else:
+            source = ip_header.src
+            server_dst_ip = self.SERVER1_IP
+            server_out_port = self.SERVER1_PORT
             # Route to server
             match = parser.OFPMatch(in_port=in_port, eth_type=ETH_TYPE_IP, ip_proto=ip_header.proto,
                                     ipv4_dst=self.VIRTUAL_IP)
@@ -232,7 +255,8 @@ class SimpleSwitch13(app_manager.RyuApp):
                                     eth_dst=src_mac
                                     )
             actions = [
-                       parser.OFPActionSetField(ipv4_src=self.VIRTUAL_IP),
+                       # parser.OFPActionSetField(ipv4_src=self.VIRTUAL_IP),
+                       parser.OFPActionSetField(ipv4_src=source),
                        parser.OFPActionOutput(in_port)]
 
             self.add_flow(datapath, 20, match, actions)
