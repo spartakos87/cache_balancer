@@ -186,13 +186,15 @@ class SimpleSwitch13(app_manager.RyuApp):
         # else:
         #     src_mac = self.SERVER2_MAC
         # self.logger.info("Selected server MAC: " + src_mac)
-        if server_ip == '10.0.0.1':
-            src_ip = self.SERVER1_IP
-            arp_target_ip = self.SERVER1_IP  # the sender ip
-            arp_target_mac = self.SERVER1_MAC  # the sender mac
-            src_mac = '00:00:00:00:00:01'
-        else:
-            src_ip = server_ip
+        # if server_ip == '10.0.0.1':
+        #     print("A")
+        #     src_ip = self.SERVER1_IP
+        #     arp_target_ip = dst_ip  # the sender ip
+        #     arp_target_mac = dst_mac  # the sender mac
+        #     src_mac = '00:00:00:00:00:03'
+        if True:
+            print("B",server_ip)
+            src_ip = self.VIRTUAL_IP
             arp_target_ip = dst_ip  # the sender ip
             arp_target_mac = dst_mac  # the sender mac
             src_mac = self.SERVER1_MAC
